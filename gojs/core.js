@@ -6,8 +6,49 @@
 }(window, function(root, Gojs, _, $){
     var previousGojs = root.Gojs;
     Gojs.VERSION = '1.0.0';
+    Gojs._controllers = {};
+    var Server = Gojs.Server = {
+        toUrl : function (param){
+            return "/?" + _.map(param, function(value, key){
+                    return key + "=" + value;
+                }).join("&")
+        },
+        loadScript : function(obj){
+            if(obj.file === undefined)return;
+            if(obj.file.indexOf('Controller')){
+                obj.file = '/controllers/' + obj.file;
+            }else if(obj.file.indexOf('Model')){
+                obj.file = '/models/' + obj.file;
+            }
+            var file = obj.file +'.js';
+            var success = obj.success || function(){}
+            var error = obj.error || function(){}
+            $.getScript(file).done(success).fail(error);
+        },
+        loadView: function(file){
+            file = (file || Get.c + "_" + Get.a) + '.html';
+            var html = '';
+            var error = error || function(){}
+            $.ajax({
+                url: this.fileCache('/views/'+ file ),
+                success : function(r){
+                    html = r;
+                },
+                error: error,
+                async: false
+            })
+            return html;
+        },
+        fileCache : function(file, cache){
+            if(Gojs.debug){
+                file = Gojs.debug ? file + '?random=' + Math.random() : file;
+            }else{
+                file = cache ? file : file + '?random=' + Math.random();
+            }
+            return file;
 
-    var Server = Gojs.Server = {};
+        }
+    };
 
     var Get = Gojs.Get = {};
 
@@ -28,20 +69,39 @@
         }
         Get.c = Get.c || 'site';
         Get.a = Get.a || 'index';
-
-
+        if(_.has(Get, 'gojs-debug')){
+            Gojs.debug = true;
+        }
+        Gojs.ControllerName = Get.c + 'Controller';
+        Gojs.ActionName = Get.a + 'Action';
+        Server.loadScript({
+            file :  Gojs.ControllerName,
+            success : Gojs.Run
+        });
     }
 
 
-     Gojs.Run = function(){
-        Router();
-        var C = new Gojs.Controller[Get.c];
-         C[Get.a + 'Action']();
+
+    var Log = Gojs.Log = function(message, type){
+        type = type || 'error';
+        if(type == 'error'){
+            console.log(message);
+        }else{
+            console.log(message);
+        }
     }
 
-    var Controller = Gojs.Controller = function(){
-
+    var Controller = Gojs.Controller = function(options){
+        options = _.defaults(this, {tagName: 'body'});
+        _.extend(this, _.pick(options, ['tagName']));
     }
+
+    _.extend(Controller.prototype, {
+        render : function(file){
+            var html = Gojs.Server.loadView(file);
+            $(this.tagName).html(_.template(html));
+        }
+    })
 
     var Model = Gojs.Model = function(){
 
@@ -87,6 +147,24 @@
     // Set up inheritance for the model, collection, router, view and history.
     Model.extend = Controller.extend = Router.extend = View.extend = History.extend = extend;
 
+    Gojs.Run = function(){
+
+        if(Gojs.ControllerName in Gojs._controllers){
+            var C = new Gojs._controllers[Gojs.ControllerName];
+            console.dir(Gojs._controllers[Gojs.ControllerName])
+            console.dir(C);
+            if(Gojs.ActionName in C){
+                C[Gojs.ActionName]();
+            }else{
+                Log('不存在' + Get.a + 'Action');
+            }
+
+        }else{
+            Log('不存在' + Get.c + "控制器");
+        }
+
+    }
     return Gojs;
 
 }));
+

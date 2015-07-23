@@ -2,8 +2,10 @@
  * Created by Administrator on 2015/7/20.
  */
 
- Gojs.Controller['site'] = Gojs.Controller.extend({
+Gojs._controllers['siteController'] = Gojs.Controller.extend({
      indexAction: function(){
-         alert(1);
+         console.dir(this)
+         this.render();
      }
  })
+//console.dir(Gojs._controllers['siteController']);
