@@ -3,12 +3,27 @@
 <head lang="en">
     <meta charset="UTF-8">
     <title></title>
-    <script src="lib/jquery.js"></script>
-    <script src="lib/underscore.js"></script>
-    <script src="gojs/core.js"></script>
+    <script src="src/gojs.js"></script>
+
 
 </head>
 <body>
-<script>Gojs.Router();</script>
+<script>
+    Go.each({
+        a: 1,
+        b: 2,
+        c: 3
+    },function(data, key){
+        console.log(data, key)
+    });
+    var aa = {a:1, b:{dd:4}};
+    var hh = Go.copy(aa);
+    hh.b.dd = 5;
+
+    var d = new Date();
+    var q = Go.date("yyyy-MM-dd hh:mm:ss", "2015/01/01 00:00:00");
+    console.log(Go.random(1, 10000))
+
+</script>
 </body>
 </html>
