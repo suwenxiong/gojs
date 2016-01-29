@@ -5,9 +5,55 @@
 (function(win){
     var _version = 1.0,
         debug = true,
+        _objects = {},
         _id = 1;
 
-    var Go = win.Go = {};
+    function gojs(data){
+        this._data = data;
+        this._events = {};
+    }
+
+    var Go = win.Go = function(data){
+        var obj;
+        data = data || Go;
+        Go.each(_objects, function(_obj, key){
+            if(_obj._data === data){
+                obj = _objects[key];
+            }
+        });
+        if(Go.isEmpty(obj)){
+            obj = _objects[Go.getId('event_')] = new gojs(data);
+        }
+        return obj;
+    };
+
+    var _proto = gojs.prototype;
+
+    _proto.bind = function(name, callback){
+        this._events[name] = this._events[name] || [];
+        this._events[name].push(callback);
+    };
+
+    _proto.trigger = function(name){
+        var _data = this._data;
+        var _events = this._events;
+        Go.each(_events[name], function(_event, index){
+            if(Go.isEmpty(_event)){
+                return;
+            }
+            var fun = _event, _args = [];
+            if(Go.isArray(_event) && _event.length > 0){
+                fun = _event[_event.length - 1];
+                _args = Go.copy(_event).splice(0, _event.length -1);
+            }
+            if(Go.isFunction(fun)){
+                fun.apply(_data, _args);
+                _events[name][index] = undefined;
+            }else{
+                Go.log('callback is not function.', 'event');
+            }
+        });
+    };
 
     function log(msg, title){
         title = title || 'log:';
@@ -39,16 +85,39 @@
         return type === 'function' || type === 'object' && !!data;
     };
 
-    Go.isFunction = function(data){
-        return typeof data === 'function';
+    Go.each = Go.forEach = function(data, fun){
+        if(Go.isObject(data) || Go.isArray(data)){
+            var keys = Go.keys(data), i, length;
+            for (i = 0, length = keys.length; i < length; i++) {
+                if(fun.call(this, data[keys[i]], keys[i]) === -1){
+                    break;
+                }
+            }
+        }
     };
 
+    Go.each(['Arguments', 'Function', 'String', 'Date', 'RegExp', 'Error'], function(name) {
+        Go['is' + name] = function(obj) {
+            return toString.call(obj) === '[object ' + name + ']';
+        };
+    });
+
+    Go.isNumber = function(num){
+        return isNaN(num) === false;
+    };
+
+    Go.isObject = function(data){
+        var type = typeof data;
+        return type === 'function' || type === 'object' && !!data ;
+    };
+
+
     Go.isDefined = function(data){
-        return typeof data === 'undefined';
+        return typeof data !== 'undefined';
     };
 
     Go.isEmpty = function(data){
-        if(data == null || data == false){
+        if(!Go.isDefined(data) || data === null ){
             return true;
         }
         if(Go.isArray(data)){
@@ -57,7 +126,7 @@
             }
         }
         if(Go.isObject(data)){
-            if(Go.keys(data) == false){
+            if(Go.keys(data).length === 0){
                 return true;
             }
         }
@@ -72,19 +141,9 @@
         return Math.round(_proto.microtime() / 1000);
     };
 
-    Go.each = Go.forEach = function(data, fun){
-        if(Go.isArray(data)){
-            return data.forEach(fun);
-        }else if(Go.isObject(data)){
-            var keys = Go.keys(data), i, length;
-            for (i = 0, length = keys.length; i < length; i++) {
-                fun.call(this, data[keys[i]], keys[i]);
-            }
-            return true;
-        }
-        log('Data is not Object or Array.');
-        return data;
-    };
+    Go.trim = function (str){
+　　     return str.replace(/(^\s*)|(\s*$)/g, "");
+　　 };
 
     Go.map = function(data, fun){
         if(Go.isArray(data)){
@@ -98,24 +157,24 @@
         }
         log('Data is not Object or Array.');
         return data;
-    }
+    };
 
     Go.urlEncode = function (param, key, encode) {
         function urlEncode(param, key, encode){
-            if(param==null) return '';
+            if(Go.isEmpty(param)) return '';
             var paramStr = '';
             var t = typeof (param);
             if (t == 'string' || t == 'number' || t == 'boolean') {
-                paramStr += '&' + key + '=' + ((encode==null||encode) ? encodeURIComponent(param) : param);
+                paramStr += '&' + key + '=' + ((Go.isEmpty(encode)||encode) ? encodeURIComponent(param) : param);
             } else {
                 for (var i in param) {
-                    var k = key == null ? i : key + (param instanceof Array ? '[' + i + ']' : '.' + i);
+                    var k = Go.isEmpty(key) ? i : key + (param instanceof Array ? '[' + i + ']' : '.' + i);
                     paramStr += urlEncode(param[i], k, encode);
                 }
             }
             return paramStr;
         }
-        return urlEncode(param,key,encode).substr(1)
+        return urlEncode(param,key,encode).substr(1);
     };
 
     /**
@@ -124,22 +183,60 @@
      * @returns {*}
      *
      */
-    Go.copy = function(obj) {
-        if(Go.isObject(obj)) {
-            if(Go.isArray(obj)) {
-                var newArr = [];
-                for(var i = 0; i < obj.length; i++) newArr.push(obj[i]);
-                return newArr;
+    Go.copy = function(obj, dest) {
+        var copy = function(obj){
+            if(Go.isObject(obj)) {
+                if(Go.isArray(obj)) {
+                    var newArr = [];
+                    for(var i = 0; i < obj.length; i++) newArr.push(obj[i]);
+                    return newArr;
+                } else {
+                    var newObj = {};
+                    Go.each(obj, function(data, key){
+                        newObj[key] = copy(obj[key]);
+                    });
+                    return newObj;
+                }
             } else {
-                var newObj = {};
-                Go.each(obj, function(data, key){
-                    newObj[key] = Go.copy(obj[key]);
-                });
-                return newObj;
+                return obj;
             }
-        } else {
-            return obj;
+        };
+
+        var newObj = copy(obj);
+        if(Go.isDefined(dest)){
+            _.each(newObj, function(value, key){
+                dest[key] = value;
+            });
         }
+        return newObj;
+    };
+
+
+
+    Go.defaults = function(obj, defaults){
+        if(Go.isObject(defaults) && Go.isObject(obj)){
+            Go.each(defaults, function(value, key){
+                if(!Go.isDefined(obj[key])){
+                    if(Go.isObject(defaults[key])){
+                        obj[key] = Go.copy(defaults[key]);
+                    }else{
+                        obj[key] = defaults[key];
+                    }
+
+                }
+            });
+        }
+        return obj;
+    };
+
+    Go.substr = function(arr, start, length){
+        if(Go.isArray(arr)){
+            arr = Go.copy(arr);
+            return arr.splice(start, length);
+        }else if(Go.isString(arr)){
+            return arr.substr(start, length);
+        }
+        return arr;
     };
 
     Go.getRandStr = function (len) {
@@ -151,6 +248,11 @@
             pwd += $chars.charAt(Math.floor(Math.random() * maxPos));
         }
         return (_id++ + pwd).substr(0, len);
+    };
+
+    Go.getId = function(key){
+        key = key || '';
+        return key + _id++;
     };
 
     Go.random = function (Min,Max){

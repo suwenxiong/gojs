@@ -4,26 +4,53 @@
     <meta charset="UTF-8">
     <title></title>
     <script src="src/gojs.js"></script>
-
+    <script src="node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="src/grouter.js"></script>
 
 </head>
 <body>
-<script>
-    Go.each({
-        a: 1,
-        b: 2,
-        c: 3
-    },function(data, key){
-        console.log(data, key)
-    });
-    var aa = {a:1, b:{dd:4}};
-    var hh = Go.copy(aa);
-    hh.b.dd = 5;
+    <div class="header"><h3>this is header</h3></div>
+    <div class="main">
+        <gmodule>
 
-    var d = new Date();
-    var q = Go.date("yyyy-MM-dd hh:mm:ss", "2015/01/01 00:00:00");
-    console.log(Go.random(1, 10000))
+        </gmodule>
+
+    </div>
+
+<script>
+
+
+    var tt = {
+        site:{
+            $params : ['site_id', 'catid'],
+            $action: ['index', 'contact', 'info']
+        },
+        profile:{
+            add: ['uid'],
+            del: ['uid'],
+            info: ['uid'],
+            $action:['index']
+        },
+        shop:{
+            $params: ['shop_id'],
+            product:{
+                info: ['pro_id']
+            }
+        }
+    }
+
+    grouter.controller('site.index',function(obj){
+        console.log('ctrl:site.index')
+    })
+
+    var obj = new grouter({
+        router: tt
+    });
+
+
+
 
 </script>
+
 </body>
 </html>

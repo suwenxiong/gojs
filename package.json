@@ -1,0 +1,26 @@
+{
+  "name": "gojs",
+  "version": "1.0.0",
+  "description": "gojs",
+  "main": "index.html",
+  "scripts": {
+    "test": "none"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/suwenxiong/gojs.git"
+  },
+  "keywords": [
+    "javascript",
+    "tool"
+  ],
+  "author": "sean",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/suwenxiong/gojs/issues"
+  },
+  "homepage": "https://github.com/suwenxiong/gojs",
+  "devDependencies": {
+    "jquery": "~2.2.0"
+  }
+}
